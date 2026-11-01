@@ -170,6 +170,8 @@ class SeamAdapter final : public LevelSeam {
     s.onFire = c.on_fire != 0;
     s.sneaking = c.sneaking != 0;
     s.sprinting = c.sprinting != 0;
+    s.position = Vec3(c.px, c.py, c.pz);
+    s.rotation = Vec3(c.pitch, c.yaw, c.roll);
     return s;
   }
 
@@ -258,6 +260,14 @@ BERRY_API void BERRY_ClearWorldSeam(void) {
 BERRY_API int32_t BERRY_HasWorldSeam(void) {
   std::lock_guard<std::mutex> lock(Berry::g_seamMutex);
   return Berry::g_seam != nullptr ? 1 : 0;
+}
+
+BERRY_API uint32_t BERRY_WorldSeamStructSize(void) {
+  return static_cast<uint32_t>(sizeof(BerrySeamC));
+}
+
+BERRY_API uint32_t BERRY_WorldSeamAbiVersion(void) {
+  return static_cast<uint32_t>(BERRY_ABI_VERSION);
 }
 
 }  // extern "C"
