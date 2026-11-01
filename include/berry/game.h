@@ -116,6 +116,14 @@ struct BERRY_API LocalPlayerState {
   bool onFire = false;
   bool sneaking = false;
   bool sprinting = false;
+  /// The local player's world position and view rotation (pitch, yaw, roll).
+  ///
+  /// These are what a host that can read only the local player supplies (the launcher's
+  /// preloader does). They default to the origin, so an adapter that does not report a pose reads
+  /// as the origin rather than as a fabricated position — a caller that needs a real pose must
+  /// check `valid` first.
+  Vec3 position;
+  Vec3 rotation;
   std::vector<PlayerEffect> effects;
 };
 

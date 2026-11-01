@@ -75,6 +75,11 @@ typedef struct BerryLocalPlayerC {
   int32_t on_fire;
   int32_t sneaking;
   int32_t sprinting;
+  /// The local player's world position and view rotation (pitch, yaw, roll). A host that can
+  /// read only the local player (a launcher's preloader) fills these; `valid` gates them, so a
+  /// zero reading is "no pose", not the origin.
+  float px, py, pz;
+  float pitch, yaw, roll;
 } BerryLocalPlayerC;
 
 /// The seam a host fills and binds.
@@ -145,6 +150,17 @@ BERRY_API void BERRY_ClearWorldSeam(void);
 
 /// 1 when a seam is currently bound, else 0.
 BERRY_API int32_t BERRY_HasWorldSeam(void);
+
+/// The exact `sizeof(BerrySeamC)` this build expects.
+///
+/// A host that mirrors the struct (a launcher's preloader, which `dlopen`s
+/// BerryAPI and so cannot include this header) reads this before binding and
+/// refuses to bind when its own `sizeof` differs. That is what makes the mirror
+/// safe: a layout drift is caught by a number, not by a misread function pointer.
+BERRY_API uint32_t BERRY_WorldSeamStructSize(void);
+
+/// The `BERRY_ABI_VERSION` this build was compiled with, for the same check.
+BERRY_API uint32_t BERRY_WorldSeamAbiVersion(void);
 
 #ifdef __cplusplus
 }  // extern "C"

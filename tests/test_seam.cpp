@@ -147,6 +147,8 @@ int32_t GetLocalPlayer(BerryLocalPlayerC* out, void* user) {
   out->on_fire = 1;
   out->sneaking = 0;
   out->sprinting = 1;
+  out->px = 4.0f; out->py = 65.0f; out->pz = -7.0f;
+  out->pitch = -12.0f; out->yaw = 90.0f; out->roll = 0.0f;
   return 1;
 }
 
@@ -274,6 +276,8 @@ int main() {
   CHECK(lp.xpProgress == 0.5f);
   CHECK(lp.air == 250.0f);
   CHECK(lp.onFire && !lp.sneaking && lp.sprinting);
+  CHECK(lp.position.x == 4.0f && lp.position.y == 65.0f && lp.position.z == -7.0f);
+  CHECK(lp.rotation.x == -12.0f && lp.rotation.y == 90.0f);
   CHECK(ctx.localCalls == 1);
 
   // --- A host that answers only part of the surface degrades, not fabricates. ---
@@ -293,6 +297,10 @@ int main() {
   CHECK(!bound->GetLocalPlayerState().valid);
   LevelTime empty = bound->GetTime();
   CHECK(empty.absolute == 0 && empty.daylight == 0.0f);
+
+  // --- The struct-size / ABI probes a mirroring host checks before binding. ---
+  CHECK(BERRY_WorldSeamStructSize() == sizeof(BerrySeamC));
+  CHECK(BERRY_WorldSeamAbiVersion() == BERRY_ABI_VERSION);
 
   // --- Unbind. ---
   BERRY_ClearWorldSeam();
