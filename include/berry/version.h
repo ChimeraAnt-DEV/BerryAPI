@@ -22,7 +22,11 @@
 // v7: BerryConfigC grew the voice-relay fields (voice_relay_host,
 //     voice_relay_port, voice_room, voice_room_secret), so a client can select
 //     the relay media plane through the C ABI, not only the LAN multicast one.
-#define BERRY_ABI_VERSION 7
+// v8: the C surface grew the world-seam entry points (BERRY_SetWorldSeam /
+//     BERRY_ClearWorldSeam / BERRY_HasWorldSeam and the BerrySeamC struct), so
+//     a host that is not linked against the C++ ABI can bind a LevelSeam and
+//     the World module's entity reads stop failing closed.
+#define BERRY_ABI_VERSION 8
 
 // Legacy internal SDK ABI identifier (kept for compatibility).
 #define BERRY_SDK_ABI 1
