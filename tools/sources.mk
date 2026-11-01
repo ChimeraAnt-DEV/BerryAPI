@@ -30,6 +30,7 @@ CORE_SRC := \
   core/modules/render_backend.cpp \
   core/modules/pipeline.cpp \
   core/modules/services.cpp \
+  core/modules/seam.cpp \
   core/modules/world.cpp \
   core/modules/world_query.cpp \
   core/modules/hud.cpp \
@@ -242,6 +243,7 @@ TEST_SRC := \
   tests/test_package.cpp \
   tests/test_layout.cpp \
   tests/test_world_query.cpp \
+  tests/test_seam.cpp \
   tests/test_record.cpp \
   tests/test_rpc.cpp \
   tests/test_scriptmod.cpp \
