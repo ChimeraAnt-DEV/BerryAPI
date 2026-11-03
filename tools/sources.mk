@@ -90,6 +90,7 @@ CORE_SRC := \
   core/replay/replay_review.cpp \
   core/replay/replay_server.cpp \
   core/replay/replay_service.cpp \
+  core/replay/replay_c.cpp \
   core/script/jsonrpc_client.cpp \
   core/net/rpc.cpp \
   core/script/layout.cpp \
@@ -272,6 +273,7 @@ TEST_SRC := \
   tests/test_replay_format.cpp \
   tests/test_replay_fuzz.cpp \
   tests/test_replay_capture.cpp \
+  tests/test_replay_c.cpp \
   tests/test_replay_world.cpp \
   tests/test_replay_review.cpp \
   tests/test_replay_server.cpp \
