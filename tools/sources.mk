@@ -43,6 +43,7 @@ CORE_SRC := \
   core/modules/cosmetic_gles.cpp \
   core/modules/shader.cpp \
   core/modules/governor.cpp \
+  core/modules/governor_c.cpp \
   core/lifecycle/engine.cpp \
   core/lifecycle/thread.cpp \
   core/net/net.cpp \
@@ -231,6 +232,7 @@ TEST_SRC := \
   tests/test_hud.cpp \
   tests/test_ui.cpp \
   tests/test_governor.cpp \
+  tests/test_governor_c.cpp \
   tests/test_url.cpp \
   tests/test_loader.cpp \
   tests/test_api_bindings.cpp \
