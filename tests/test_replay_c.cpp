@@ -20,7 +20,7 @@ static int g_fail = 0;
 int main() {
   // --- Before attach: the surface is refused, and every call fails closed ---
   CHECK(BERRY_GetReplayApi() == nullptr);
-  CHECK(BERRY_ReplayAbiVersion() == 1);
+  CHECK(BERRY_ReplayAbiVersion() == 2);
   CHECK(BERRY_ReplayStructSize() > 0);
   CHECK(std::strcmp(BERRY_ReplayStatusName(BERRY_REPLAY_NOT_ATTACHED), "not attached") == 0);
   CHECK(std::strcmp(BERRY_ReplayStatusName(BERRY_REPLAY_OK), "ok") == 0);
@@ -44,7 +44,8 @@ int main() {
   CHECK(api->size == sizeof(BerryReplayApi));
   CHECK(api->load && api->save && api->unload && api->info && api->play && api->pause &&
         api->stop && api->seek && api->set_speed && api->playback && api->set_local_player &&
-        api->loaded && api->status);
+        api->loaded && api->status && api->capture_start && api->capture_stop &&
+        api->capture_state && api->capture_packet);
 
   // --- Nothing loaded yet: info reports not-loaded, playback is zeroed ---
   CHECK(api->loaded() == 0);
@@ -87,6 +88,37 @@ int main() {
   // --- Unload clears it ---
   api->unload();
   CHECK(api->loaded() == 0);
+
+  // --- Capture: start, feed packets, stop, and export them ---
+  // The recorder half: a host that sees the network stream records it here, and
+  // the packet stream is the world data (no game-memory offset needed).
+  CHECK(api->capture_start() == BERRY_REPLAY_OK);
+  // Idempotent: starting again while recording is not an error.
+  CHECK(api->capture_start() == BERRY_REPLAY_OK);
+  CHECK(api->capture_state() == 1);   // recording
+
+  // A packet is stored and the recording becomes exportable.
+  const char packet[] = "\x01\x02\x03\x04";
+  CHECK(api->capture_packet(0, 7, packet, sizeof(packet) - 1, 20) == BERRY_REPLAY_OK);
+
+  // A null or empty payload is refused, not dereferenced.
+  CHECK(api->capture_packet(0, 7, nullptr, 4, 20) == BERRY_REPLAY_BAD_ARGUMENT);
+  CHECK(api->capture_packet(0, 7, packet, 0, 20) == BERRY_REPLAY_BAD_ARGUMENT);
+
+  // Stop keeps the captured replay, so `save` now returns bytes even though no
+  // replay was loaded.
+  CHECK(api->capture_stop() == BERRY_REPLAY_OK);
+  CHECK(api->capture_state() == 0);   // idle
+  size_t captured = 0;
+  const void* bytes = api->save(&captured);
+  CHECK(bytes != nullptr && captured > 0);
+
+  // A packet with no session recording is refused with the named status.
+  CHECK(api->capture_packet(0, 7, packet, sizeof(packet) - 1, 40) ==
+        BERRY_REPLAY_NOT_RECORDING);
+
+  // The new status has a name.
+  CHECK(std::strcmp(BERRY_ReplayStatusName(BERRY_REPLAY_NOT_RECORDING), "not recording") == 0);
 
   if (g_fail == 0) printf("test_replay_c: all checks passed\n");
   return g_fail == 0 ? 0 : 1;
