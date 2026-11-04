@@ -16,7 +16,7 @@
 #include <cstring>
 #include <string>
 
-#define BERRY_REPLAY_ABI_VERSION 1
+#define BERRY_REPLAY_ABI_VERSION 2
 
 namespace {
 
@@ -46,7 +46,13 @@ int32_t Load(const void* bytes, size_t len) {
 
 const void* Save(size_t* out_len) {
   Berry::ReplayService* svc = Service();
-  if (svc == nullptr || !svc->loaded()) return nullptr;
+  if (svc == nullptr) return nullptr;
+  // Something must be exportable: a loaded replay, or a capture that holds
+  // sections. `ReplayService::Save` exports the loaded replay, or the capture
+  // when none is loaded - so a host that only recorded the packet stream can
+  // still save it - but a fresh, empty service still refuses, which is what the
+  // "nothing to save" contract has always meant.
+  if (!svc->loaded() && svc->capture().sectionCount() == 0) return nullptr;
   g_saveBuffer.clear();
   Berry::ReplayError err = svc->Save(&g_saveBuffer);
   if (err != Berry::ReplayError::Ok) return nullptr;
@@ -148,6 +154,45 @@ const char* Status() {
   return g_statusBuffer.c_str();
 }
 
+//--- capture --------------------------------------------------------------
+
+int32_t CaptureStart() {
+  Berry::ReplayService* svc = Service();
+  if (svc == nullptr) return BERRY_REPLAY_NOT_ATTACHED;
+  // `Start` refuses only when already recording, which is not an error for a
+  // host that just wants a session to be running, so both outcomes are OK.
+  svc->capture().Start();
+  return BERRY_REPLAY_OK;
+}
+
+int32_t CaptureStop() {
+  Berry::ReplayService* svc = Service();
+  if (svc == nullptr) return BERRY_REPLAY_NOT_ATTACHED;
+  // Stopping when not recording is a no-op, not a failure.
+  svc->capture().Stop();
+  return BERRY_REPLAY_OK;
+}
+
+int32_t CaptureState() {
+  Berry::ReplayService* svc = Service();
+  if (svc == nullptr) return -1;
+  return static_cast<int32_t>(svc->capture().state());
+}
+
+int32_t CapturePacket(int32_t dir, uint32_t id, const void *payload, size_t len,
+                      uint64_t tick) {
+  Berry::ReplayService* svc = Service();
+  if (svc == nullptr) return BERRY_REPLAY_NOT_ATTACHED;
+  if (payload == nullptr || len == 0) return BERRY_REPLAY_BAD_ARGUMENT;
+  const Berry::PacketDir direction =
+      dir == static_cast<int32_t>(Berry::PacketDir::Outbound)
+          ? Berry::PacketDir::Outbound
+          : Berry::PacketDir::Inbound;
+  const std::string body(static_cast<const char*>(payload), len);
+  const bool stored = svc->capture().CapturePacket(direction, id, body, tick);
+  return stored ? BERRY_REPLAY_OK : BERRY_REPLAY_NOT_RECORDING;
+}
+
 const BerryReplayApi g_api = {
     sizeof(BerryReplayApi),
     BERRY_REPLAY_ABI_VERSION,
@@ -164,6 +209,10 @@ const BerryReplayApi g_api = {
     &SetLocalPlayer,
     &Loaded,
     &Status,
+    &CaptureStart,
+    &CaptureStop,
+    &CaptureState,
+    &CapturePacket,
 };
 
 }  // namespace
@@ -189,6 +238,7 @@ BERRY_API const char* BERRY_ReplayStatusName(int32_t status) {
     case BERRY_REPLAY_BAD_REPLAY: return "bad replay";
     case BERRY_REPLAY_BAD_ARGUMENT: return "bad argument";
     case BERRY_REPLAY_NOT_LOADED: return "no replay loaded";
+    case BERRY_REPLAY_NOT_RECORDING: return "not recording";
     default: return "unknown";
   }
 }

@@ -40,6 +40,8 @@ typedef enum BerryReplayStatus {
   BERRY_REPLAY_BAD_ARGUMENT = 3,
   /// No replay is loaded.
   BERRY_REPLAY_NOT_LOADED = 4,
+  /// A packet arrived but no capture session is recording, so it was dropped.
+  BERRY_REPLAY_NOT_RECORDING = 5,
 } BerryReplayStatus;
 
 /// The loaded replay's summary, flattened so no C++ type crosses the boundary.
@@ -117,6 +119,31 @@ typedef struct BerryReplayApi {
   /// A one-line status for a status line, or "" when none. Valid until the next
   /// call.
   const char *(*status)(void);
+
+  //--- capture (the recorder half) -------------------------------------------
+  //
+  // A host that can see the game's network stream records it here. A Bedrock
+  // session's entity spawns, movement, block updates and inventory all arrive as
+  // packets, so the packet stream is the world data - no game-memory offset is
+  // needed to reconstruct it. `capture_start` begins a session, `capture_packet`
+  // feeds one datagram, and `save` then exports the recording.
+
+  /// Begins a capture session, clearing any previous sections. Returns
+  /// `BERRY_REPLAY_OK` (also when already recording, so a double start is safe)
+  /// or `BERRY_REPLAY_NOT_ATTACHED`.
+  int32_t (*capture_start)(void);
+  /// Ends the session, keeping the captured replay for `save`.
+  int32_t (*capture_stop)(void);
+  /// The capture state: 0 idle, 1 recording, 2 throttled (thermal), 3 stopped.
+  int32_t (*capture_state)(void);
+  /// Records one packet from the network stream. `dir` is 0 inbound, 1 outbound.
+  /// `payload` is the packet body verbatim and `tick` the tick it arrived on.
+  /// Returns `BERRY_REPLAY_OK` when stored, `BERRY_REPLAY_NOT_ATTACHED` with no
+  /// service, `BERRY_REPLAY_BAD_ARGUMENT` for a null or empty payload, and
+  /// `BERRY_REPLAY_NOT_RECORDING` when no session is recording or the packet was
+  /// refused (over the size cap, or packets disabled).
+  int32_t (*capture_packet)(int32_t dir, uint32_t id, const void *payload,
+                            size_t len, uint64_t tick);
 } BerryReplayApi;
 
 /// The `BERRY_REPLAY_ABI_VERSION` this build was compiled with. The host compares
